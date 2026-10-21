@@ -321,10 +321,10 @@ MediExplain AI is an educational technology project intended to support understa
 
 ## 👨‍💻 Author
 
-**Priyanshu Dhiman**
+**Priyanshu**
 
 - GitHub: [@priyanshud773](https://github.com/priyanshud773)
-- Project Repository: [MediExplain AI](https://github.com/priyanshud773/MediExplain-AI)
+- Project Repository: [MediExplain AI](https://github.com/priyanshud773/MediExplain)
 
 ## 📄 License
 
