@@ -15,6 +15,7 @@ import {
   FaFileMedical,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function Register() {
@@ -51,7 +52,7 @@ function Register() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/auth/register",
+        `${API_BASE_URL}/auth/register`,
         {
           name: trimmedName,
           email: trimmedEmail,
@@ -69,24 +70,12 @@ function Register() {
 
       setTimeout(() => {
         navigate("/login", { state: { email: trimmedEmail } });
-      }, 1200);
+      }, 1000);
 
     } catch (error) {
       console.log("REGISTER ERROR:", error);
-
-      if (error.response) {
-        const detail = error.response.data?.detail;
-        if (typeof detail === "string") {
-          toast.error(detail);
-        } else if (Array.isArray(detail)) {
-          const msg = detail.map((d) => d.msg || JSON.stringify(d)).join(", ");
-          toast.error(msg || "Validation error. Please verify your inputs.");
-        } else {
-          toast.error("Registration failed. Please check your details or try a different email.");
-        }
-      } else {
-        toast.error("Unable to connect to the medical server. Please check backend.");
-      }
+      const friendlyMsg = getErrorMessage(error, "Registration failed. Please check your details or try a different email.");
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }

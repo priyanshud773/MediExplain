@@ -142,4 +142,39 @@ export const chatApi = {
   },
 };
 
+// Backend Health & Connectivity API
+export const healthApi = {
+  check: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/health`, { timeout: 3000 });
+      return response.status === 200 && response.data?.status === "healthy";
+    } catch {
+      return false;
+    }
+  },
+  getDetails: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/health`, { timeout: 3000 });
+      return response.data;
+    } catch (err) {
+      return { status: "offline", error: err.message };
+    }
+  },
+};
+
+// Central Error Parser for consistent clinical UI feedback
+export function getErrorMessage(error, defaultMsg = "An unexpected error occurred.") {
+  if (!error) return defaultMsg;
+  if (!error.response) {
+    return `Unable to reach the backend server at ${API_BASE_URL}. Please verify that the FastAPI backend is running (run 'npm run start:backend' or 'run_servers.bat').`;
+  }
+  const detail = error.response.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d) => d.msg || JSON.stringify(d)).join(", ");
+  }
+  return error.response.data?.message || defaultMsg;
+}
+
 export default apiClient;
+

@@ -1,20 +1,15 @@
-import os
-from dotenv import load_dotenv
 from google import genai
+from ..config import GEMINI_API_KEY
 
-load_dotenv()
-
-api_key = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key) if api_key else None
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
 def _get_client():
     global client
     if client is None:
-        key = os.getenv("GEMINI_API_KEY")
-        if not key:
-            raise RuntimeError("GEMINI_API_KEY is not set in .env file")
-        client = genai.Client(api_key=key)
+        if not GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY is not set in MediExplainAI/.env file")
+        client = genai.Client(api_key=GEMINI_API_KEY)
     return client
 
 
@@ -93,10 +88,19 @@ advice from a qualified healthcare professional.
     print("Selected Chat Language:", language)
     print("Calling Chat Gemini...")
 
-    response = _get_client().models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    last_err = None
+    for model_name in models_to_try:
+        try:
+            response = _get_client().models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            print(f"Chat Gemini Success with model {model_name}")
+            return response.text
+        except Exception as exc:
+            last_err = exc
+            print(f"[CHAT GEMINI RETRY] Model {model_name} failed: {exc}")
 
-    print("Chat Gemini Success")
-    return response.text
+    raise last_err
+

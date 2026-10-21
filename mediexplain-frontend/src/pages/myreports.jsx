@@ -17,6 +17,7 @@ import {
 import { toast } from "react-toastify";
 import Navbar from "../components/Navbar";
 import ConfirmModal from "../components/ConfirmModal";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function MyReports() {
@@ -35,7 +36,7 @@ function MyReports() {
       setLoading(true);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/reports/my-reports",
+        `${API_BASE_URL}/reports/my-reports`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -57,9 +58,9 @@ function MyReports() {
 
       setReports(data);
       setError("");
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, "Failed to load medical reports."));
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,7 @@ function MyReports() {
       setLoading(true);
 
       const response = await fetch(
-        `http://127.0.0.1:8000/reports/search?query=${encodeURIComponent(
+        `${API_BASE_URL}/reports/search?query=${encodeURIComponent(
           search
         )}`,
         {
@@ -97,9 +98,9 @@ function MyReports() {
 
       setReports(data);
       setError("");
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, "Search failed."));
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ function MyReports() {
       setDeleting(true);
 
       const response = await fetch(
-        `http://127.0.0.1:8000/reports/${deleteTarget.id}`,
+        `${API_BASE_URL}/reports/${deleteTarget.id}`,
         {
           method: "DELETE",
           headers: {
@@ -133,9 +134,9 @@ function MyReports() {
 
       toast.success("Medical report deleted successfully.");
       setDeleteTarget(null);
-    } catch (error) {
-      console.error(error);
-      toast.error(error.message || "Failed to delete report");
+    } catch (err) {
+      console.error(err);
+      toast.error(getErrorMessage(err, "Failed to delete report"));
     } finally {
       setDeleting(false);
     }
@@ -147,7 +148,7 @@ function MyReports() {
       toast.info("Preparing document download...");
 
       const response = await fetch(
-        `http://127.0.0.1:8000/reports/download/${reportId}`,
+        `${API_BASE_URL}/reports/download/${reportId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,

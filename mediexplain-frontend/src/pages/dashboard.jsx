@@ -11,6 +11,7 @@ import {
   FaFilePdf,
 } from "react-icons/fa";
 import Navbar from "../components/Navbar";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function Dashboard() {
@@ -26,7 +27,7 @@ function Dashboard() {
         const token = localStorage.getItem("access_token");
 
         const response = await fetch(
-          "http://127.0.0.1:8000/reports/dashboard",
+          `${API_BASE_URL}/reports/dashboard`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -46,9 +47,9 @@ function Dashboard() {
 
         const data = await response.json();
         setDashboard(data);
-      } catch (error) {
-        console.error(error);
-        setError("Unable to load clinical dashboard data.");
+      } catch (err) {
+        console.error(err);
+        setError(getErrorMessage(err, "Unable to load clinical dashboard data."));
       } finally {
         setLoading(false);
       }
@@ -73,8 +74,13 @@ function Dashboard() {
     return (
       <div className="medical-page">
         <Navbar />
-        <div className="medical-error">
-          <span>⚠️ {error}</span>
+        <div className="medical-container" style={{ padding: "60px 20px", textAlign: "center" }}>
+          <div className="medical-error" style={{ maxWidth: "650px", margin: "0 auto 24px" }}>
+            <span>⚠️ {error}</span>
+          </div>
+          <button className="primary-btn" onClick={() => window.location.reload()}>
+            <span>Retry Connection</span>
+          </button>
         </div>
       </div>
     );

@@ -16,6 +16,7 @@ import {
 import { toast } from "react-toastify";
 import Navbar from "../components/Navbar";
 import ExplanationViewer from "../components/ExplanationViewer";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function Upload() {
@@ -50,7 +51,7 @@ function Upload() {
       toast.info("Extracting document & running clinical analysis...");
 
       const response = await fetch(
-        "http://127.0.0.1:8000/reports/upload",
+        `${API_BASE_URL}/reports/upload`,
         {
           method: "POST",
           headers: {
@@ -89,8 +90,9 @@ function Upload() {
       }
     } catch (error) {
       console.error(error);
-      setMessage(error.message);
-      toast.error(error.message || "Failed to process medical report");
+      const friendlyMsg = getErrorMessage(error, error.message || "Failed to process medical report");
+      setMessage(friendlyMsg);
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }

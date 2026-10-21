@@ -14,6 +14,7 @@ import {
   FaFileMedical,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function Login() {
@@ -30,7 +31,7 @@ function Login() {
     try {
       const response = await axios({
         method: "POST",
-        url: "http://127.0.0.1:8000/auth/login",
+        url: `${API_BASE_URL}/auth/login`,
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
@@ -44,18 +45,12 @@ function Login() {
 
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1000);
+      }, 800);
 
     } catch (error) {
       console.log("LOGIN ERROR:", error);
-
-      if (error.response) {
-        toast.error(
-          error.response.data.detail || "Invalid credentials. Please verify your email and password."
-        );
-      } else {
-        toast.error("Unable to connect to the medical server. Please check your backend.");
-      }
+      const friendlyMsg = getErrorMessage(error, "Invalid credentials. Please verify your email and password.");
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaBrain,
@@ -10,18 +10,29 @@ import {
   FaArrowLeft,
   FaInfoCircle,
   FaLightbulb,
+  FaFolderOpen,
+  FaCloudUploadAlt,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import Navbar from "../components/Navbar";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function Chat() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const reportId = location.state?.reportId;
-  const reportName = location.state?.reportName;
-  const language = location.state?.language || "English";
+  const [availableReports, setAvailableReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState(
+    location.state?.reportId || null
+  );
+  const [selectedReportName, setSelectedReportName] = useState(
+    location.state?.reportName || ""
+  );
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    location.state?.language || "English"
+  );
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -29,7 +40,62 @@ function Chat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const sampleQuestions = language === "Hinglish" ? [
+  // Load available reports to allow seamless switching and direct navigation from Navbar
+  useEffect(() => {
+    const fetchUserReports = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      try {
+        setLoadingReports(true);
+        const res = await fetch(`${API_BASE_URL}/reports/my-reports`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401) {
+          localStorage.removeItem("access_token");
+          navigate("/login");
+          return;
+        }
+
+        if (res.ok) {
+          const list = await res.json();
+          setAvailableReports(list);
+
+          // If no report selected yet from location.state, select the most recent one
+          if (!selectedReportId && list.length > 0) {
+            const first = list[0];
+            setSelectedReportId(first.id);
+            setSelectedReportName(first.filename);
+            setSelectedLanguage(first.language || "English");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user reports list:", err);
+      } finally {
+        setLoadingReports(false);
+      }
+    };
+
+    fetchUserReports();
+  }, [navigate, selectedReportId]);
+
+  const handleReportChange = (e) => {
+    const repId = parseInt(e.target.value, 10);
+    const rep = availableReports.find((r) => r.id === repId);
+    if (rep) {
+      setSelectedReportId(rep.id);
+      setSelectedReportName(rep.filename);
+      setSelectedLanguage(rep.language || "English");
+      setAnswer("");
+      setSubmittedQuestion("");
+      setError("");
+    }
+  };
+
+  const sampleQuestions = selectedLanguage === "Hinglish" ? [
     "Mera hemoglobin level normal range mein hai kya?",
     "Kya mujhe is report ke baad doctor se milna chahiye?",
     "Is result ke liye mujhe diet mein kya changes karne chahiye?",
@@ -48,9 +114,9 @@ function Chat() {
       return;
     }
 
-    if (!reportId) {
-      setError("Report reference ID not found. Please navigate from your reports archive.");
-      toast.error("Report reference ID not found. Please select from My Reports.");
+    if (!selectedReportId) {
+      setError("Please select or upload a medical report first.");
+      toast.error("Please select a report to chat with.");
       return;
     }
 
@@ -62,28 +128,25 @@ function Chat() {
       setAnswer("");
       setSubmittedQuestion(currentQuestion);
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/chat/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            report_id: reportId,
-            question: currentQuestion,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const response = await fetch(`${API_BASE_URL}/chat/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          report_id: selectedReportId,
+          question: currentQuestion,
+        }),
+      });
 
       if (response.status === 401) {
         localStorage.removeItem("access_token");
         navigate("/login");
         return;
       }
+
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.detail || "Unable to get AI answer");
@@ -92,10 +155,11 @@ function Chat() {
       setAnswer(data.answer);
       setQuestion("");
       toast.success("AI response generated!");
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
-      toast.error(error.message || "Unable to retrieve AI response");
+    } catch (err) {
+      console.error(err);
+      const friendlyMsg = getErrorMessage(err, "Unable to retrieve AI response");
+      setError(friendlyMsg);
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }
@@ -114,7 +178,7 @@ function Chat() {
           <div>
             <h1>Ask MediExplain AI 💬</h1>
             <p>
-              Inquire about specific values, terminology, lifestyle guidance, or questions for your physician based on this document.
+              Inquire about specific values, terminology, lifestyle guidance, or questions for your physician based on your uploaded document.
             </p>
           </div>
           <div className="welcome-badge">
@@ -123,38 +187,86 @@ function Chat() {
           </div>
         </section>
 
-        {/* REPORT CONTEXT BANNER */}
-        <div className="dashboard-card" style={{ marginBottom: "26px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div className="report-icon">
-                <FaFilePdf />
-              </div>
-              <div>
-                <div style={{ fontSize: "16px", fontWeight: "700", color: "#16313B" }}>
-                  {reportName || "Selected Medical Report"}
-                </div>
-                <div className="report-meta">
-                  <span className="report-meta-pill teal">
-                    <FaLanguage style={{ fontSize: "11px" }} />
-                    Language: {language}
-                  </span>
-                  {reportId && (
-                    <span className="report-meta-pill">
-                      ID: #{reportId}
-                    </span>
-                  )}
-                </div>
-              </div>
+        {/* NO REPORTS WARNING OR REPORT CONTEXT BANNER */}
+        {!selectedReportId && !loadingReports && availableReports.length === 0 ? (
+          <div className="empty-state" style={{ marginBottom: "26px" }}>
+            <div className="empty-state-icon">
+              <FaFolderOpen />
             </div>
-
-            <Link to="/my-reports">
-              <button className="secondary-btn" style={{ padding: "7px 14px", fontSize: "13px" }}>
-                <span>Change Report</span>
+            <h3>No Medical Reports Available</h3>
+            <p>
+              To chat with the Clinical AI, please first upload a medical laboratory or pathology report in PDF format.
+            </p>
+            <Link to="/upload">
+              <button className="primary-btn">
+                <FaCloudUploadAlt />
+                <span>Upload a Report Now</span>
               </button>
             </Link>
           </div>
-        </div>
+        ) : (
+          <div className="dashboard-card" style={{ marginBottom: "26px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                <div className="report-icon">
+                  <FaFilePdf />
+                </div>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: "700", color: "#16313B" }}>
+                    {selectedReportName || "Selected Medical Report"}
+                  </div>
+                  <div className="report-meta">
+                    <span className="report-meta-pill teal">
+                      <FaLanguage style={{ fontSize: "11px" }} />
+                      Language: {selectedLanguage}
+                    </span>
+                    {selectedReportId && (
+                      <span className="report-meta-pill">
+                        ID: #{selectedReportId}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* REPORT SELECTOR DROPDOWN */}
+              {availableReports.length > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <label htmlFor="report-select-dropdown" style={{ fontSize: "13px", fontWeight: "600", color: "#64748B" }}>
+                    Switch Document:
+                  </label>
+                  <select
+                    id="report-select-dropdown"
+                    value={selectedReportId || ""}
+                    onChange={handleReportChange}
+                    style={{
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #CBD5E1",
+                      fontSize: "13px",
+                      color: "#16313B",
+                      backgroundColor: "#FFFFFF",
+                      cursor: "pointer",
+                      maxWidth: "240px",
+                    }}
+                  >
+                    {availableReports.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.filename} ({r.language})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <Link to="/my-reports">
+                <button className="secondary-btn" style={{ padding: "7px 14px", fontSize: "13px" }}>
+                  <span>View All Reports</span>
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* CHAT INTERFACE WRAPPER */}
         <div className="chat-card-wrapper">
@@ -167,7 +279,7 @@ function Chat() {
             <div>
               <h3>MediExplain Clinical Assistant</h3>
               <p>
-                Ask anything about your test markers, nutritional advice, or everyday lifestyle modifications. The AI responds within the clinical context of your uploaded report.
+                Ask anything about your test markers, nutritional advice, or everyday lifestyle modifications. The AI responds within the clinical context of your selected report.
               </p>
             </div>
           </div>
@@ -264,7 +376,7 @@ function Chat() {
                     <div>
                       <h4>MediExplain AI Response</h4>
                       <small style={{ color: "#64748B", fontSize: "12px" }}>
-                        Language: {language}
+                        Language: {selectedLanguage}
                       </small>
                     </div>
                   </div>
@@ -290,7 +402,7 @@ function Chat() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder={
-                  language === "Hinglish"
+                  selectedLanguage === "Hinglish"
                     ? "Example: Mera hemoglobin level normal hai kya? Diet mein kya add karein?"
                     : "Example: Is my hemoglobin level normal? What questions should I ask my physician?"
                 }
@@ -301,7 +413,7 @@ function Chat() {
             <button
               type="submit"
               className="primary-btn"
-              disabled={loading || !question.trim()}
+              disabled={loading || !question.trim() || !selectedReportId}
               style={{ width: "100%", height: "48px" }}
             >
               {loading ? (

@@ -43,3 +43,13 @@ def home():
     return {
         "message": "Welcome to MediExplain AI"
     }
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "backend": "online",
+        "service": "MediExplain AI API",
+        "version": "1.0.0"
+    }

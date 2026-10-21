@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FaHeartbeat,
@@ -10,12 +10,33 @@ import {
   FaBars,
   FaTimes,
   FaShieldAlt,
+  FaCheckCircle,
+  FaExclamationTriangle,
 } from "react-icons/fa";
+import { healthApi } from "../services/api";
 
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [backendStatus, setBackendStatus] = useState("checking");
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let isMounted = true;
+    const verifyBackend = async () => {
+      const isOnline = await healthApi.check();
+      if (isMounted) {
+        setBackendStatus(isOnline ? "online" : "offline");
+      }
+    };
+
+    verifyBackend();
+    const interval = setInterval(verifyBackend, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -83,8 +104,42 @@ function Navbar() {
           </Link>
         </div>
 
-        {/* Right Section: Security Badge & Logout */}
+        {/* Right Section: Backend Status, Security Badge & Logout */}
         <div className="nav-actions-desktop">
+          <div
+            className={`nav-status-pill ${backendStatus}`}
+            title={
+              backendStatus === "online"
+                ? "FastAPI Backend Server is online on http://127.0.0.1:8000"
+                : "Backend Server is offline. Please launch 'npm run start:backend' or 'run_servers.bat'"
+            }
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "5px 11px",
+              borderRadius: "20px",
+              fontSize: "12px",
+              fontWeight: "600",
+              background: backendStatus === "online" ? "#F0FDF4" : backendStatus === "offline" ? "#FEF2F2" : "#F8FAFC",
+              color: backendStatus === "online" ? "#15803D" : backendStatus === "offline" ? "#B91C1C" : "#64748B",
+              border: `1px solid ${backendStatus === "online" ? "#BBF7D0" : backendStatus === "offline" ? "#FECACA" : "#E2E8F0"}`,
+              cursor: "default",
+            }}
+          >
+            <span
+              style={{
+                width: "7px",
+                height: "7px",
+                borderRadius: "50%",
+                backgroundColor: backendStatus === "online" ? "#22C55E" : backendStatus === "offline" ? "#EF4444" : "#94A3B8",
+                boxShadow: backendStatus === "online" ? "0 0 6px rgba(34, 197, 94, 0.6)" : "none",
+                display: "inline-block",
+              }}
+            />
+            <span>{backendStatus === "online" ? "API Connected" : backendStatus === "offline" ? "Backend Offline" : "Checking..."}</span>
+          </div>
+
           <div className="nav-secure-badge" title="HIPAA Compliant & Secure Session">
             <FaShieldAlt className="shield-icon" />
             <span>Encrypted</span>
@@ -152,6 +207,29 @@ function Navbar() {
           </div>
 
           <div className="mobile-nav-footer">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                marginBottom: "12px",
+                fontSize: "12px",
+                fontWeight: "600",
+                color: backendStatus === "online" ? "#15803D" : "#B91C1C",
+              }}
+            >
+              <span
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  backgroundColor: backendStatus === "online" ? "#22C55E" : "#EF4444",
+                }}
+              />
+              <span>{backendStatus === "online" ? "Backend Online" : "Backend Disconnected"}</span>
+            </div>
+
             <button className="mobile-logout-btn" onClick={handleLogout}>
               <FaSignOutAlt />
               <span>Logout</span>

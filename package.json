@@ -1,0 +1,14 @@
+{
+  "name": "mediexplain-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MediExplain AI - Medical Report Explanation System",
+  "scripts": {
+    "dev": "npm --prefix mediexplain-frontend run dev",
+    "dev:frontend": "npm --prefix mediexplain-frontend run dev",
+    "build": "npm --prefix mediexplain-frontend run build",
+    "preview": "npm --prefix mediexplain-frontend run preview",
+    "start:backend": ".\\MediExplainAI\\venv\\Scripts\\python.exe -m uvicorn app.main:app --app-dir MediExplainAI --host 127.0.0.1 --port 8000 --reload",
+    "check:backend": ".\\MediExplainAI\\venv\\Scripts\\python.exe -u -c \"import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())\""
+  }
+}

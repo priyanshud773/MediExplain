@@ -64,7 +64,19 @@ def upload_report(
             detail="Could not extract readable text from the uploaded PDF. Please make sure the PDF is not an image-only or empty document."
         )
 
-    explanation = explain_medical_report(pdf_text, language)
+    try:
+        explanation = explain_medical_report(pdf_text, language)
+    except Exception as exc:
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+        print(f"[REPORT ERROR] Gemini AI analysis failed: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Medical AI analysis could not be completed: {str(exc)}"
+        )
 
     new_report = models.Report(
         filename=os.path.basename(file_path),

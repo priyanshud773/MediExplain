@@ -11,6 +11,7 @@ import {
   FaEyeSlash,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function ResetPassword() {
@@ -49,7 +50,7 @@ function ResetPassword() {
       setLoading(true);
 
       await axios.post(
-        "http://127.0.0.1:8000/auth/reset-password",
+        `${API_BASE_URL}/auth/reset-password`,
         {
           email: email,
           otp: otp,
@@ -61,20 +62,12 @@ function ResetPassword() {
 
       setTimeout(() => {
         navigate("/login");
-      }, 1200);
+      }, 1000);
 
     } catch (error) {
       console.error(error);
-
-      if (error.response) {
-        toast.error(
-          error.response.data.detail ||
-            "Unable to reset password. Token may have expired."
-        );
-      } else {
-        toast.error("Unable to connect to the medical server.");
-      }
-
+      const friendlyMsg = getErrorMessage(error, "Unable to reset password. Token may have expired.");
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }

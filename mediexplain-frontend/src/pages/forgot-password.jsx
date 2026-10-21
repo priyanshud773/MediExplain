@@ -9,6 +9,7 @@ import {
   FaShieldAlt,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function ForgotPassword() {
@@ -29,30 +30,22 @@ function ForgotPassword() {
       setLoading(true);
 
       await axios.post(
-        "http://127.0.0.1:8000/auth/forgot-password",
+        `${API_BASE_URL}/auth/forgot-password`,
         {
-          email: email,
+          email: email.trim().toLowerCase(),
         }
       );
 
       toast.success("OTP sent successfully! Please check your inbox.");
 
       navigate("/verify-otp", {
-        state: { email: email },
+        state: { email: email.trim().toLowerCase() },
       });
 
     } catch (error) {
       console.error(error);
-
-      if (error.response) {
-        toast.error(
-          error.response.data.detail ||
-            "Unable to send recovery code. Please check your email."
-        );
-      } else {
-        toast.error("Unable to connect to the medical server.");
-      }
-
+      const friendlyMsg = getErrorMessage(error, "Unable to send recovery code. Please check your email.");
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }

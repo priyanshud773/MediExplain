@@ -9,6 +9,7 @@ import {
   FaClock,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_BASE_URL, getErrorMessage } from "../services/api";
 import "../styles/medical.css";
 
 function VerifyOTP() {
@@ -38,7 +39,7 @@ function VerifyOTP() {
       setLoading(true);
 
       await axios.post(
-        "http://127.0.0.1:8000/auth/verify-otp",
+        `${API_BASE_URL}/auth/verify-otp`,
         {
           email: email,
           otp: otp.trim(),
@@ -56,16 +57,8 @@ function VerifyOTP() {
 
     } catch (error) {
       console.error(error);
-
-      if (error.response) {
-        toast.error(
-          error.response.data.detail ||
-            "Invalid or expired OTP code. Please try again."
-        );
-      } else {
-        toast.error("Unable to connect to the medical server.");
-      }
-
+      const friendlyMsg = getErrorMessage(error, "Invalid or expired OTP code. Please try again.");
+      toast.error(friendlyMsg);
     } finally {
       setLoading(false);
     }
